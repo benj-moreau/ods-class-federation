@@ -22,8 +22,16 @@ def dataset_meta_request(dataset_id, api_key=None):
         raise DatasetIdMissing
 
 
-def search_v2(search='', rows=10, sort='explore.popularity_score', api_key=None):
-    params = {'search': search, 'rows': rows, 'sort': sort, 'apikey': api_key}
+def search_v2(where='', search='', refine='', exclude='', rows=10, start=0, sort='explore.popularity_score',
+              api_key=None):
+    params = {'where': where,
+              'search': search,
+              'refine': refine,
+              'exclude': exclude,
+              'rows': rows,
+              'start': start,
+              'sort': sort,
+              'apikey': api_key}
     request = requests.get(DATA_CATALOG_API_SEARCH_V2_URL,
                            params,
                            timeout=requester.get_timeout(),
