@@ -3,10 +3,10 @@ from ods.api.iterators import CatalogIterator
 
 
 def main(clas):
-    catalog_iterator = CatalogIterator(search='test1')
-    cpt = 0
+    catalog_iterator = CatalogIterator(domain_id='data', where=f'semantic.classes:"{clas}"')
     for dataset in catalog_iterator:
         print(dataset)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='A tool that federate ods datasets by a specific class.')
