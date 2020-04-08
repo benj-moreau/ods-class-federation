@@ -2,8 +2,8 @@ import argparse
 from ods.api.iterators import CatalogIterator
 
 
-def main(clas):
-    catalog_iterator = CatalogIterator(domain_id='data', where=f'semantic.classes:"{clas}"')
+def main(domain_id, clas, api_key):
+    catalog_iterator = CatalogIterator(domain_id=domain_id, where=f'semantic.classes:"{clas}"', api_key=api_key)
     for dataset in catalog_iterator:
         print(dataset.rml_mapping)
 
@@ -14,4 +14,4 @@ if __name__ == "__main__":
     parser.add_argument('-d', '-domain_id', type=str, help='The domain-id of the domain', required=True)
     parser.add_argument('--a', '--api_key', type=str, help='An api-key for the domain', default=None, required=False)
     args = parser.parse_args()
-    main(args.c)
+    main(args.d, args.c, args.a)
