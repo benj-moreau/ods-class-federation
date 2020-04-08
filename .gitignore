@@ -164,6 +164,7 @@ dmypy.json
 # .idea/modules.xml
 # .idea/*.iml
 # .idea/*
+.idea/
 # .idea/modules
 # *.iml
 # *.ipr
