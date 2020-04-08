@@ -1,11 +1,17 @@
 import argparse
+import yaml
+
 from ods.api.iterators import CatalogIterator
+from ods.rdf.mapping import RDFMapping
 
 
 def main(domain_id, clas, api_key):
     catalog_iterator = CatalogIterator(domain_id=domain_id, where=f'semantic.classes:"{clas}"', api_key=api_key)
     for dataset in catalog_iterator:
-        print(dataset.rml_mapping)
+        rml_mapping = yaml.safe_load(dataset.rml_mapping)
+        rdf_mapping = RDFMapping(rml_mapping)
+        for uri in rdf_mapping.search_classes(clas):
+            print(uri)
 
 
 if __name__ == "__main__":
