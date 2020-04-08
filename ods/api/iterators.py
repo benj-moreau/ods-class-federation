@@ -1,4 +1,8 @@
+import pprint
+
 from ods.api.catalog import search_v2
+
+PrettyPrinter = pprint.PrettyPrinter(indent=4)
 
 
 class CatalogIterator:
@@ -27,7 +31,7 @@ class CatalogIterator:
         if self.cpt <= len(self):
             if len(self.result['datasets']) > 0:
                 self.cpt += 1
-                return self.result['datasets'].pop(0)
+                return CatalogDataset(self.domain_id, self.result['datasets'].pop(0))
             else:
                 self.result = search_v2(self.domain_id, self.where, self.search, self.refine, self.exclude, self.rows,
                                         self.start + (self.nb_query * self.rows), self.sort, self.api_key)
@@ -35,4 +39,87 @@ class CatalogIterator:
                 if len(self.result['datasets']) > 0:
                     return self.__next__()
         raise StopIteration()
+
+
+class CatalogDataset:
+    def __init__(self, domain_id, json):
+        self.domain_id = domain_id
+        self.json = json
+
+    def __repr__(self):
+        return repr(self.json)
+
+    def __str__(self):
+        return str(self.json)
+
+    @property
+    def dataset_id(self):
+        return self.json.get('dataset', {}).get('dataset_id')
+
+    @property
+    def dataset_uid(self):
+        return self.json.get('dataset', {}).get('dataset_uid')
+
+    @property
+    def has_records(self):
+        return self.json.get('dataset', {}).get('has_records')
+
+    @property
+    def fields(self):
+        return self.json.get('dataset', {}).get('fields')
+
+    @property
+    def source_domain_address(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('source_domain_address')
+
+    @property
+    def records_count(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('records_count')
+
+    @property
+    def title(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('title')
+
+    @property
+    def themes(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('theme')
+
+    @property
+    def keywords(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('keyword')
+
+    @property
+    def publisher(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('publisher')
+
+    @property
+    def language(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('language')
+
+    @property
+    def license(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('license')
+
+    @property
+    def license_url(self):
+        license_url = self.json.get('dataset', {}).get('metas', {}).get('default', {}).get('license_url')
+        if not license_url:
+            license_url = None
+        return license_url
+
+    @property
+    def rml_mapping(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('semantic', {}).get('rml_mapping')
+
+    @property
+    def classes(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('semantic', {}).get('classes')
+
+    @property
+    def properties(self):
+        return self.json.get('dataset', {}).get('metas', {}).get('semantic', {}).get('properties')
+
+    @property
+    def features(self):
+        return self.json.get('dataset', {}).get('features')
 

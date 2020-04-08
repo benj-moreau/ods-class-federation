@@ -5,7 +5,7 @@ from ods.api.iterators import CatalogIterator
 def main(clas):
     catalog_iterator = CatalogIterator(domain_id='data', where=f'semantic.classes:"{clas}"')
     for dataset in catalog_iterator:
-        print(dataset)
+        print(dataset.rml_mapping)
 
 
 if __name__ == "__main__":
