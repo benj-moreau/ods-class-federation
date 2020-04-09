@@ -10,11 +10,6 @@ url_regex = re.compile(
     r'(?::\d+)?' # optional port
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
-# to find references ex: $(field_name)
-REGEX_REFERENCES = re.compile('(\$\(.*?\))')
-REGEX_UNREFERENCES = re.compile('\$\(.*?\)')
-REGEX_REFERENCE_FIELD = re.compile('\$\((.*?)\)')
-
 
 YARRRML_KEYS = {
     'mappings': ['mappings', 'mapping'],
@@ -55,7 +50,6 @@ def parse_subjects(rml_mapping, prefixes):
     for mapping_key, mapping in get_keys(rml_mapping, YARRRML_KEYS['mappings']).items():
         if 'subject' in mapping and mapping_key not in resources:
             subject = parse_uri_template(mapping['subject'], prefixes)
-            print(subject)
             resources[mapping_key] = subject
     return resources
 
@@ -191,5 +185,5 @@ def get_keys(d, keys):
     return {}
 
 
-def is_valid_uri(URI):
-    return re.match(url_regex, URI) is not None
+def is_valid_uri(uri):
+    return re.match(url_regex, uri) is not None

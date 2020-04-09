@@ -2,7 +2,7 @@ import argparse
 import yaml
 
 from ods.api.iterators import CatalogIterator
-from ods.rdf.mapping import RDFMapping
+from ods.rdf.mapping import RDFMapping, get_fields
 
 
 def main(domain_id, clas, api_key):
@@ -10,8 +10,11 @@ def main(domain_id, clas, api_key):
     for dataset in catalog_iterator:
         rml_mapping = yaml.safe_load(dataset.rml_mapping)
         rdf_mapping = RDFMapping(rml_mapping)
-        for uri in rdf_mapping.search_classes(clas):
-            print(uri)
+        templates = set()
+        for class_uri in rdf_mapping.search_classes(clas):
+            templates = templates.union(rdf_mapping.templates(class_uri=class_uri))
+        for template in templates:
+            print(get_fields(template))
 
 
 if __name__ == "__main__":

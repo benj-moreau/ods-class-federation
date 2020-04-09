@@ -1,6 +1,12 @@
-from rdflib import RDF
+from rdflib import RDF, URIRef
+import re
 
 from ods.rdf.parser import yarrrml_parser
+
+# to find references ex: $(field_name)
+REGEX_REFERENCES = re.compile('(\$\(.*?\))')
+REGEX_UNREFERENCES = re.compile('\$\(.*?\)')
+REGEX_REFERENCE_FIELD = re.compile('\$\((.*?)\)')
 
 
 class RDFMapping:
@@ -20,6 +26,25 @@ class RDFMapping:
             if string.lower() == get_suffix(uri).lower():
                 yield uri
 
+    def templates(self, class_uri=None):
+        templates = set()
+        if class_uri:
+            for s, _, _ in self.graph.triples((None, RDF.type, URIRef(class_uri))):
+                templates.add(str(s))
+        else:
+            for s, _, _ in self.graph.triples((None, RDF.type, None)):
+                templates.add(str(s))
+        return templates
+
 
 def get_suffix(uri):
     return uri.split('/')[-1].split('#')[-1]
+
+
+def get_fields(term):
+    serialized_term = str(term)
+    matched_fields = REGEX_REFERENCE_FIELD.findall(serialized_term)
+    fields = []
+    for field in matched_fields:
+        fields.append(field)
+    return fields
