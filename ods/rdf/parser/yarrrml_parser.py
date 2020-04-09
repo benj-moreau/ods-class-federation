@@ -55,6 +55,7 @@ def parse_subjects(rml_mapping, prefixes):
     for mapping_key, mapping in get_keys(rml_mapping, YARRRML_KEYS['mappings']).items():
         if 'subject' in mapping and mapping_key not in resources:
             subject = parse_uri_template(mapping['subject'], prefixes)
+            print(subject)
             resources[mapping_key] = subject
     return resources
 
@@ -81,9 +82,9 @@ def parse_predicate_objects(rml_mapping, resources, prefixes):
 def parse_object(rdf_semantic_mapping, subject, predicate, obj, resources, prefixes):
     if len(obj) > 0:
         object_value = obj[0]
-        uri = parse_uri_template(object_value, prefixes)
-        if is_valid_uri(uri):
+        if is_valid_uri(object_value):
             # object is a URI (constant or template)
+            uri = parse_uri_template(object_value, prefixes)
             obj = uri
         else:
             if object_value in resources:
