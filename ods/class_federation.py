@@ -21,10 +21,10 @@ def federate_datasets(domain_id, clas, api_key, output_file):
             for i, record in enumerate(dataset_iterator, start=1):
                 if i % 50 == 0:
                     logging.info(f'Processed {i}/{len(dataset_iterator)} records in {dataset_id}.')
-                for template, properties in templates.items():
-                    row = {clas: record.value(template)}
-                    for federate_field, field_name in properties.items():
-                        row[federate_field] = record.value(field_name)
+                for template_fields, properties in templates.items():
+                    row = {clas: process_value(record, template_fields)}
+                    for federate_field, field_names in properties.items():
+                        row[federate_field] = process_value(record, field_names)
                     writer.writerow(row)
 
 
@@ -63,6 +63,12 @@ def _get_federation_fields(filtered_mappings, clas):
                 federation_fields.add(federation_field)
     return federation_fields
 
+
+def process_value(record, fields):
+    values = []
+    for field in fields.split(' '):
+        values.append(str(record.value(field)))
+    return _fields_to_str(values)
 
 
 def _fields_to_str(fields):
