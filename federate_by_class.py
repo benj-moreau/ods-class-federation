@@ -1,20 +1,10 @@
 import argparse
-import yaml
 
-from ods.api.iterators import CatalogIterator
-from ods.rdf.mapping import RDFMapping, get_fields
+from ods.class_federation import federate_datasets
 
 
 def main(domain_id, clas, api_key):
-    catalog_iterator = CatalogIterator(domain_id=domain_id, where=f'semantic.classes:"{clas}"', api_key=api_key)
-    for dataset in catalog_iterator:
-        rml_mapping = yaml.safe_load(dataset.rml_mapping)
-        rdf_mapping = RDFMapping(rml_mapping)
-        templates = set()
-        for class_uri in rdf_mapping.search_classes(clas):
-            templates = templates.union(rdf_mapping.templates(class_uri=class_uri))
-        for template in templates:
-            print(get_fields(template))
+    federate_datasets(domain_id, clas, api_key)
 
 
 if __name__ == "__main__":

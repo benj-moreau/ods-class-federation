@@ -36,6 +36,24 @@ class RDFMapping:
                 templates.add(str(s))
         return templates
 
+    def properties(self, template=None):
+        properties = set()
+        if template:
+            for _, p, _ in self.graph.triples((URIRef(template), None, None)):
+                properties.add(str(p))
+        else:
+            for _, p, _ in self.graph.triples((None, None, None)):
+                properties.add(str(p))
+        return properties
+
+    def properties_objects(self, template=None):
+        if template:
+            for _, p, o in self.graph.triples((URIRef(template), None, None)):
+                yield str(p), str(o)
+        else:
+            for _, p, o in self.graph.triples((None, None, None)):
+                yield str(p), str(o)
+
 
 def get_suffix(uri):
     return uri.split('/')[-1].split('#')[-1]
