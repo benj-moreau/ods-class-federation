@@ -77,7 +77,7 @@ class DatasetIterator:
                                          self.exclude, self.rows, self.start + (self.nb_query * self.rows),
                                          self.sort, self.api_key)
                 self.nb_query += 1
-                if len(self.result['datasets']) > 0:
+                if len(self.result['records']) > 0:
                     return self.__next__()
         raise StopIteration()
 
@@ -195,6 +195,9 @@ class DatasetRecord:
     @property
     def fields(self):
         return self.json.get('record', {}).get('fields')
+
+    def value(self, field_name):
+        return self.json.get('record', {}).get('fields', {}).get(field_name, None)
 
     @property
     def links(self):
