@@ -3,12 +3,17 @@ import requests
 import utils.requester as requester
 
 
-class DatasetIdMissing(Exception):
-    pass
-
-
-def records_v2(domain_id, dataset_id, rows=10, api_key=None):
-    params = {'rows': rows, 'apikey': api_key}
+def records_v2(domain_id, dataset_id, where='', search='', refine='', exclude='',  rows=10, start=0, sort='', select='',
+               api_key=None):
+    params = {'where': where,
+              'search': search,
+              'refine': refine,
+              'exclude': exclude,
+              'rows': rows,
+              'start': start,
+              'sort': sort,
+              'select': select,
+              'apikey': api_key}
     request = requests.get(f'https://{domain_id}.opendatasoft.com/api/v2/catalog/datasets/{dataset_id}/records',
                            params,
                            timeout=requester.get_timeout(),

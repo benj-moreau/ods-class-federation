@@ -1,13 +1,14 @@
 import pprint
 
 from ods.api.catalog import search_v2
+from ods.api.dataset import records_v2
 
 PrettyPrinter = pprint.PrettyPrinter(indent=4)
 
 
 class CatalogIterator:
-    def __init__(self, domain_id, where='', search='', refine='', exclude='', rows=10, start=0, sort='explore.popularity_score',
-                 api_key=None):
+    def __init__(self, domain_id, where='', search='', refine='', exclude='', rows=10, start=0,
+                 sort='explore.popularity_score', api_key=None):
         self.domain_id = domain_id
         self.where = where
         self.search = search
@@ -35,6 +36,46 @@ class CatalogIterator:
             else:
                 self.result = search_v2(self.domain_id, self.where, self.search, self.refine, self.exclude, self.rows,
                                         self.start + (self.nb_query * self.rows), self.sort, self.api_key)
+                self.nb_query += 1
+                if len(self.result['datasets']) > 0:
+                    return self.__next__()
+        raise StopIteration()
+
+
+class DatasetIterator:
+    def __init__(self, domain_id, dataset_id, where='', search='', refine='', exclude='',  rows=10, start=0, sort='',
+                 select='', api_key=None):
+        self.domain_id = domain_id
+        self.dataset_id = dataset_id
+        self.where = where
+        self.search = search
+        self.refine = refine
+        self.exclude = exclude
+        self.rows = rows
+        self.start = start
+        self.sort = sort
+        self.select = select
+        self.api_key = api_key
+        self.cpt = 0
+        self.result = records_v2(domain_id, dataset_id, where, search, refine, exclude, rows, start, sort, select,
+                                 api_key)
+        self.nb_query = 1
+
+    def __len__(self):
+        return self.result['total_count']
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.cpt <= len(self):
+            if len(self.result['records']) > 0:
+                self.cpt += 1
+                return DatasetRecord(self.domain_id, self.dataset_id, self.result['records'].pop(0))
+            else:
+                self.result = records_v2(self.domain_id, self.dataset_id, self.where, self.search, self.refine,
+                                         self.exclude, self.rows, self.start + (self.nb_query * self.rows),
+                                         self.sort, self.api_key)
                 self.nb_query += 1
                 if len(self.result['datasets']) > 0:
                     return self.__next__()
@@ -123,3 +164,38 @@ class CatalogDataset:
     def features(self):
         return self.json.get('dataset', {}).get('features')
 
+    @property
+    def links(self):
+        return self.json.get('links')
+
+
+class DatasetRecord:
+    def __init__(self, domain_id, dataset_id, json):
+        self.domain_id = domain_id
+        self.dataset_id = dataset_id
+        self.json = json
+
+    def __repr__(self):
+        return repr(self.json)
+
+    def __str__(self):
+        return str(self.json)
+
+    def __len__(self):
+        return self.json.get('record', {}).get('size')
+
+    @property
+    def id(self):
+        return self.json.get('record', {}).get('id')
+
+    @property
+    def timestamp(self):
+        return self.json.get('record', {}).get('timestamp')
+
+    @property
+    def fields(self):
+        return self.json.get('record', {}).get('fields')
+
+    @property
+    def links(self):
+        return self.json.get('links')
