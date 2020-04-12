@@ -1,7 +1,10 @@
 import argparse
 import os
+import logging
 
 from ods.class_federation import federate_datasets_json, federate_datasets_csv
+
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
 
 def main(domain_id, clas, api_key, output_file):
