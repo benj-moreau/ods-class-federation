@@ -1,13 +1,44 @@
 import csv
 import yaml
 import logging
+import json
 from rdflib import RDF
 
 from ods.api.iterators import CatalogIterator, DatasetIterator
 from ods.rdf.mapping import RDFMapping, get_fields, get_suffix
 
 
-def federate_datasets(domain_id, clas, api_key, output_file):
+def federate_datasets_json(domain_id, clas, api_key, output_file):
+    filtered_mappings = _filtered_mappings(domain_id, clas, api_key)
+    # schema of the federation (set of fields)
+    with output_file as json_file:
+        json_file.write('{\n  "records": [\n')
+        try:
+            # Now we retrieve data from datasets
+            for dataset_id, templates in filtered_mappings.items():
+                # rows=100 to reduce http calls
+                dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100)
+                for i, record in enumerate(dataset_iterator, start=1):
+                    out_record = {'from_datasetid': record.dataset_id, 'from_recordid': record.id}
+                    if i % 50 == 0:
+                        logging.info(f'Processed {i}/{len(dataset_iterator)} records in {dataset_id}.')
+                    for template_fields, properties in templates.items():
+                        row = {clas: process_value(record, template_fields)}
+                        for federate_field, field_names in properties.items():
+                            row[federate_field] = process_value(record, field_names)
+                        out_record['fields'] = row
+                        if i == 1:
+                            json_file.write(f'    {json.dumps(out_record)}')
+                        else:
+                            json_file.write(f',\n    {json.dumps(out_record)}')
+            json_file.write('\n  ]\n}')
+        except:
+            raise
+        finally:
+            json_file.write('\n  ]\n}')
+
+
+def federate_datasets_csv(domain_id, clas, api_key, output_file):
     filtered_mappings = _filtered_mappings(domain_id, clas, api_key)
     # schema of the federation (set of fields)
     federated_fields = _get_federation_fields(filtered_mappings, clas)

@@ -3,6 +3,7 @@
 *.csv
 *.yml
 *.rml
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
