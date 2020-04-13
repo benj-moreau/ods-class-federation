@@ -1,6 +1,6 @@
 import requests
 
-import utils.requester as requester
+from ods.api.utils import requester
 
 
 def search_v2(domain_id, where='', search='', refine='', exclude='', rows=10, start=0, sort='explore.popularity_score',

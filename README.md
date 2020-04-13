@@ -32,7 +32,7 @@ python federate_by_class.py [-h] -o output_file -c class -d domain_id [--a api_k
 ```
 
 usage:
-```bash
+```
 required arguments:
   -o O, -output O     json/csv file that will contain the federated dataset
   -c C, -class C      Class to filter datasets (as shown in class filter)

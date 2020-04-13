@@ -1,21 +1,22 @@
-from rdflib import RDF, URIRef
+from rdflib import RDF, URIRef, Graph
 import re
 
-from ods.rdf.parser import yarrrml_parser
+from ods.rdf.utils import yarrrml_parser
 
 # to find references ex: $(field_name)
-REGEX_REFERENCES = re.compile('(\$\(.*?\))')
-REGEX_UNREFERENCES = re.compile('\$\(.*?\)')
 REGEX_REFERENCE_FIELD = re.compile('\$\((.*?)\)')
 
 
 class RDFMapping:
-    def __init__(self, yarrrml_mapping):
-        self.graph = yarrrml_parser.get_rdf_mapping(yarrrml_mapping)
+    def __init__(self, yarrrml_mapping=None):
+        if yarrrml_mapping:
+            self.graph = yarrrml_parser.get_rdf_mapping(yarrrml_mapping)
+        else:
+            self.graph = Graph()
 
     @property
     def rdf_graph(self):
-        return self.graph()
+        return self.graph
 
     def get_classes_uri(self):
         for _, _, o in self.graph.triples((None, RDF.type, None)):
@@ -53,6 +54,9 @@ class RDFMapping:
         else:
             for _, p, o in self.graph.triples((None, None, None)):
                 yield str(p), str(o)
+
+    def add(self, subject, predicate, object):
+        self.graph.add((subject, predicate, object))
 
 
 def get_suffix(uri):
