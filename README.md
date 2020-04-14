@@ -58,3 +58,8 @@ Or, if you have an `api_key`:
 ```bash
 python federate_by_class.py -o dataset.json -c Person -d data --a ThisIsaFakeApiKey
 ```
+
+## Result
+
+After executing the script, a `.json`|`.csv` file containing the federated dataset is generated along with a `.rml.yml`.
+This yml file contains an RDF mapping for the federated dataset.

@@ -16,13 +16,11 @@ def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
     output_mapping_file = open(f'{filename}.rml.yml', 'w')
     output_mapping_file.write(rdf_mapping.serialize('yaml', dataset_id=filename))
     output_mapping_file.close()
-    '''
     with output_file:
         if format == 'csv':
             generate_csv(domain_id, clas, api_key, output_file, schema)
         else:
             generate_json(domain_id, clas, api_key, output_file, schema)
-    '''
 
 
 def get_rdf_mapping(semantic, domain_id, dataset_id, clas):
