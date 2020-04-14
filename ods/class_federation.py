@@ -2,14 +2,17 @@ import csv
 import yaml
 import logging
 import json
-from rdflib import RDF
+import os
+from rdflib import RDF, URIRef, Literal
 
 from ods.api.iterators import CatalogIterator, DatasetIterator
 from ods.rdf.mapping import RDFMapping, get_fields, get_suffix
 
 
 def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
-    filtered_mappings = _filtered_mappings(domain_id, clas, api_key)
+    schema, semantic = _get_federated_dataset(domain_id, clas, api_key)
+    federated_dataset_id, _ = os.path.splitext(output_file.name)
+    rdf_mapping = get_rdf_mapping(semantic, domain_id, federated_dataset_id, clas)
     with output_file:
         if format == 'csv':
             generate_csv(domain_id, clas, api_key, output_file, filtered_mappings)
@@ -17,11 +20,21 @@ def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
             generate_json(domain_id, clas, api_key, output_file, filtered_mappings)
 
 
-def generate_json(domain_id, clas, api_key, json_file, filtered_mappings):
+def get_rdf_mapping(semantic, domain_id, dataset_id, clas):
+    rdf_mapping = RDFMapping()
+    subject = f'https://{domain_id}.opendatasoft.com/ld/resources/{dataset_id}/{clas}/$({semantic["id"]})/'
+    for predicate, field in semantic.items():
+        if predicate != 'id':
+            object = f'$({field})'
+            rdf_mapping.add(subject, predicate, object)
+    return rdf_mapping
+
+
+def generate_json(domain_id, clas, api_key, json_file, dataset_schema):
     json_file.write('{\n  "records": [\n')
     try:
         # Now we retrieve data from datasets
-        for dataset_id, templates in filtered_mappings.items():
+        for dataset_id, templates in dataset_schema.items():
             # rows=100 to reduce http calls
             dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100, api_key=api_key)
             for i, record in enumerate(dataset_iterator, start=1):
@@ -44,12 +57,12 @@ def generate_json(domain_id, clas, api_key, json_file, filtered_mappings):
         json_file.write('\n  ]\n}')
 
 
-def generate_csv(domain_id, clas, api_key, csv_file, filtered_mappings):
-    federated_fields = _get_federation_fields(filtered_mappings, clas)
+def generate_csv(domain_id, clas, api_key, csv_file, dataset_schema):
+    federated_fields = _get_federation_fields(dataset_schema, clas)
     writer = csv.DictWriter(csv_file, fieldnames=federated_fields)
     writer.writeheader()
     # Now we retrieve data from datasets
-    for dataset_id, templates in filtered_mappings.items():
+    for dataset_id, templates in dataset_schema.items():
         # rows=100 to reduce http calls
         dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100, api_key=api_key)
         for i, record in enumerate(dataset_iterator, start=1):
@@ -62,10 +75,12 @@ def generate_csv(domain_id, clas, api_key, csv_file, filtered_mappings):
                 writer.writerow(row)
 
 
-def _filtered_mappings(domain_id, clas, api_key):
+def _get_federated_dataset(domain_id, clas, api_key):
     catalog_iterator = CatalogIterator(domain_id=domain_id, where=f'semantic.classes:"{clas}"', api_key=api_key)
     logging.info(f'Found {len(catalog_iterator)} datasets containing class {clas}.')
-    filtered_mappings = {}
+    dataset_schema = {}
+    dataset_semantic = {}
+    classes = set()
     for dataset in catalog_iterator:
         logging.info(f'{dataset.dataset_id}')
         filtered_mapping = {}
@@ -83,15 +98,22 @@ def _filtered_mappings(domain_id, clas, api_key):
             for property, object in rdf_mapping.properties_objects(template):
                 if not property == str(RDF.type):
                     template_mapping[get_suffix(property)] = _fields_to_str(get_fields(object))
+                    dataset_semantic[property] = get_suffix(property)
+                else:
+                    cl = str(object)
+                    if clas in cl:
+                        classes.add(object)
             filtered_mapping[fields] = template_mapping
-        filtered_mappings[dataset.dataset_id] = filtered_mapping
-    return filtered_mappings
+        dataset_schema[dataset.dataset_id] = filtered_mapping
+        dataset_semantic[str(RDF.type)] = list(classes)
+        dataset_semantic['id'] = clas
+    return dataset_schema, dataset_semantic
 
 
-def _get_federation_fields(filtered_mappings, clas):
+def _get_federation_fields(dataset_schema, clas):
     federation_fields = set()
     federation_fields.add(clas)
-    for dataset_id, templates in filtered_mappings.items():
+    for dataset_id, templates in dataset_schema.items():
         for template_field, properties in templates.items():
             for federation_field in properties:
                 federation_fields.add(federation_field)

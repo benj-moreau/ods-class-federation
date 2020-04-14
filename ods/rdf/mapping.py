@@ -1,4 +1,4 @@
-from rdflib import RDF, URIRef, Graph
+from rdflib import RDF, Graph, Literal, URIRef
 import re
 
 from ods.rdf.utils import yarrrml_parser
@@ -7,12 +7,30 @@ from ods.rdf.utils import yarrrml_parser
 REGEX_REFERENCE_FIELD = re.compile('\$\((.*?)\)')
 
 
+url_regex = re.compile(
+    r'^(?:http|ftp)s?://' # http:// or https://
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+    r'localhost|' #localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+    r'(?::\d+)?' # optional port
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
+
 class RDFMapping:
     def __init__(self, yarrrml_mapping=None):
         if yarrrml_mapping:
             self.graph = yarrrml_parser.get_rdf_mapping(yarrrml_mapping)
         else:
             self.graph = Graph()
+
+    def __repr__(self):
+        return self.graph.__repr__()
+
+    def __str__(self):
+        return self.graph.__str__()
+
+    def __len__(self):
+        return len(self.graph)
 
     @property
     def rdf_graph(self):
@@ -56,8 +74,10 @@ class RDFMapping:
                 yield str(p), str(o)
 
     def add(self, subject, predicate, object):
-        self.graph.add((subject, predicate, object))
-
+        if is_valid_uri(object):
+            self.graph.add((URIRef(subject), URIRef(predicate), URIRef(object)))
+        else:
+            self.graph.add((URIRef(subject), URIRef(predicate), Literal(object)))
 
 def get_suffix(uri):
     return uri.split('/')[-1].split('#')[-1]
@@ -70,3 +90,7 @@ def get_fields(term):
     for field in matched_fields:
         fields.append(field)
     return fields
+
+
+def is_valid_uri(uri):
+    return re.match(url_regex, uri) is not None
