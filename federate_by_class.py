@@ -4,7 +4,7 @@ import logging
 
 from ods.class_federation import federate_datasets_json, federate_datasets_csv
 
-logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
 def main(domain_id, clas, api_key, output_file):
