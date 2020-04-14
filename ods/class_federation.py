@@ -3,7 +3,7 @@ import yaml
 import logging
 import json
 import os
-from rdflib import RDF, URIRef, Literal
+from rdflib import RDF
 
 from ods.api.iterators import CatalogIterator, DatasetIterator
 from ods.rdf.mapping import RDFMapping, get_fields, get_suffix
@@ -11,20 +11,28 @@ from ods.rdf.mapping import RDFMapping, get_fields, get_suffix
 
 def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
     schema, semantic = _get_federated_dataset(domain_id, clas, api_key)
-    federated_dataset_id, _ = os.path.splitext(output_file.name)
-    rdf_mapping = get_rdf_mapping(semantic, domain_id, federated_dataset_id, clas)
+    filename, _ = os.path.splitext(output_file.name)
+    rdf_mapping = get_rdf_mapping(semantic, domain_id, filename, clas)
+    output_mapping_file = open(f'document.rml.yml', 'w')
+    output_mapping_file.write(rdf_mapping.serialize('yaml', dataset_id=filename))
+    output_mapping_file.close()
+    '''
     with output_file:
         if format == 'csv':
             generate_csv(domain_id, clas, api_key, output_file, schema)
         else:
             generate_json(domain_id, clas, api_key, output_file, schema)
+    '''
 
 
 def get_rdf_mapping(semantic, domain_id, dataset_id, clas):
     rdf_mapping = RDFMapping()
     subject = f'https://{domain_id}.opendatasoft.com/ld/resources/{dataset_id}/{clas}/$({semantic["id"]})/'
     for predicate, field in semantic.items():
-        if predicate != 'id':
+        if predicate == str(RDF.type):
+            for uri in field:
+                rdf_mapping.add(subject, predicate, uri)
+        elif predicate != 'id':
             object = f'$({field})'
             rdf_mapping.add(subject, predicate, object)
     return rdf_mapping

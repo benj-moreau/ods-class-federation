@@ -1,7 +1,7 @@
 from rdflib import RDF, Graph, Literal, URIRef
 import re
 
-from ods.rdf.utils import yarrrml_parser
+from ods.rdf.utils import yarrrml_parser, yarrrml_serializer
 
 # to find references ex: $(field_name)
 REGEX_REFERENCE_FIELD = re.compile('\$\((.*?)\)')
@@ -36,12 +36,20 @@ class RDFMapping:
     def rdf_graph(self):
         return self.graph
 
-    def get_classes_uri(self):
-        for _, _, o in self.graph.triples((None, RDF.type, None)):
-            yield o
+    def triples(self):
+        for s, p, o in self.graph.triples((None, None, None)):
+            yield (str(s), str(p), str(o))
+
+    def classes(self, subject=None):
+        classes = set()
+        if subject:
+            subject = URIRef(subject)
+        for _, _, o in self.graph.triples((subject, RDF.type, None)):
+            classes.add(str(o))
+        return classes
 
     def search_classes(self, string):
-        for uri in self.get_classes_uri():
+        for uri in self.classes():
             if string.lower() == get_suffix(uri).lower():
                 yield uri
 
@@ -78,6 +86,14 @@ class RDFMapping:
             self.graph.add((URIRef(subject), URIRef(predicate), URIRef(object)))
         else:
             self.graph.add((URIRef(subject), URIRef(predicate), Literal(object)))
+
+    def serialize(self, format='yaml', dataset_id=None):
+        """‘xml’, ‘n3’, ‘turtle’, ‘nt’, ‘pretty-xml’, ‘trix’, ‘trig’ and ‘nquads’ formats are built in"""
+        if format in ['yaml', 'yml', 'yarrrml']:
+            return yarrrml_serializer.dump(self, dataset_id)
+        else:
+            return str(self.graph.serialize(format=format), 'utf-8')
+
 
 def get_suffix(uri):
     return uri.split('/')[-1].split('#')[-1]
