@@ -13,7 +13,7 @@ def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
     schema, semantic = _get_federated_dataset(domain_id, clas, api_key)
     filename, _ = os.path.splitext(output_file.name)
     rdf_mapping = get_rdf_mapping(semantic, domain_id, filename, clas)
-    output_mapping_file = open(f'document.rml.yml', 'w')
+    output_mapping_file = open(f'{filename}.rml.yml', 'w')
     output_mapping_file.write(rdf_mapping.serialize('yaml', dataset_id=filename))
     output_mapping_file.close()
     '''
