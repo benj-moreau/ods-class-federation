@@ -15,9 +15,9 @@ def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
     rdf_mapping = get_rdf_mapping(semantic, domain_id, federated_dataset_id, clas)
     with output_file:
         if format == 'csv':
-            generate_csv(domain_id, clas, api_key, output_file, filtered_mappings)
+            generate_csv(domain_id, clas, api_key, output_file, schema)
         else:
-            generate_json(domain_id, clas, api_key, output_file, filtered_mappings)
+            generate_json(domain_id, clas, api_key, output_file, schema)
 
 
 def get_rdf_mapping(semantic, domain_id, dataset_id, clas):
