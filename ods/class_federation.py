@@ -8,55 +8,58 @@ from ods.api.iterators import CatalogIterator, DatasetIterator
 from ods.rdf.mapping import RDFMapping, get_fields, get_suffix
 
 
-def federate_datasets_json(domain_id, clas, api_key, output_file):
+def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
     filtered_mappings = _filtered_mappings(domain_id, clas, api_key)
-    # schema of the federation (set of fields)
-    with output_file as json_file:
-        json_file.write('{\n  "records": [\n')
-        try:
-            # Now we retrieve data from datasets
-            for dataset_id, templates in filtered_mappings.items():
-                # rows=100 to reduce http calls
-                dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100)
-                for i, record in enumerate(dataset_iterator, start=1):
-                    out_record = {'from_datasetid': record.dataset_id, 'from_recordid': record.id}
-                    if i % 50 == 0:
-                        logging.info(f'Processed {i}/{len(dataset_iterator)} records in {dataset_id}.')
-                    for template_fields, properties in templates.items():
-                        row = {clas: process_value(record, template_fields)}
-                        for federate_field, field_names in properties.items():
-                            row[federate_field] = process_value(record, field_names)
-                        out_record['fields'] = row
-                        if i == 1:
-                            json_file.write(f'    {json.dumps(out_record)}')
-                        else:
-                            json_file.write(f',\n    {json.dumps(out_record)}')
-            json_file.write('\n  ]\n}')
-        except:
-            raise
-        finally:
-            json_file.write('\n  ]\n}')
+    with output_file:
+        if format == 'csv':
+            generate_csv(domain_id, clas, api_key, output_file, filtered_mappings)
+        else:
+            generate_json(domain_id, clas, api_key, output_file, filtered_mappings)
 
 
-def federate_datasets_csv(domain_id, clas, api_key, output_file):
-    filtered_mappings = _filtered_mappings(domain_id, clas, api_key)
-    # schema of the federation (set of fields)
-    federated_fields = _get_federation_fields(filtered_mappings, clas)
-    with output_file as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=federated_fields)
-        writer.writeheader()
+def generate_json(domain_id, clas, api_key, json_file, filtered_mappings):
+    json_file.write('{\n  "records": [\n')
+    try:
         # Now we retrieve data from datasets
         for dataset_id, templates in filtered_mappings.items():
             # rows=100 to reduce http calls
-            dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100)
+            dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100, api_key=api_key)
             for i, record in enumerate(dataset_iterator, start=1):
+                out_record = {'from_datasetid': record.dataset_id, 'from_recordid': record.id}
                 if i % 50 == 0:
                     logging.info(f'Processed {i}/{len(dataset_iterator)} records in {dataset_id}.')
                 for template_fields, properties in templates.items():
                     row = {clas: process_value(record, template_fields)}
                     for federate_field, field_names in properties.items():
                         row[federate_field] = process_value(record, field_names)
-                    writer.writerow(row)
+                    out_record['fields'] = row
+                    if i == 1:
+                        json_file.write(f'    {json.dumps(out_record)}')
+                    else:
+                        json_file.write(f',\n    {json.dumps(out_record)}')
+        json_file.write('\n  ]\n}')
+    except:
+        raise
+    finally:
+        json_file.write('\n  ]\n}')
+
+
+def generate_csv(domain_id, clas, api_key, csv_file, filtered_mappings):
+    federated_fields = _get_federation_fields(filtered_mappings, clas)
+    writer = csv.DictWriter(csv_file, fieldnames=federated_fields)
+    writer.writeheader()
+    # Now we retrieve data from datasets
+    for dataset_id, templates in filtered_mappings.items():
+        # rows=100 to reduce http calls
+        dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100, api_key=api_key)
+        for i, record in enumerate(dataset_iterator, start=1):
+            if i % 50 == 0:
+                logging.info(f'Processed {i}/{len(dataset_iterator)} records in {dataset_id}.')
+            for template_fields, properties in templates.items():
+                row = {clas: process_value(record, template_fields)}
+                for federate_field, field_names in properties.items():
+                    row[federate_field] = process_value(record, field_names)
+                writer.writerow(row)
 
 
 def _filtered_mappings(domain_id, clas, api_key):

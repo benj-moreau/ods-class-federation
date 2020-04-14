@@ -2,21 +2,21 @@ import argparse
 import os
 import logging
 
-from ods.class_federation import federate_datasets_json, federate_datasets_csv
+from ods.class_federation import federate_datasets
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
 def main(domain_id, clas, api_key, output_file):
     if is_json_output(output_file):
-        federate_datasets_json(domain_id, clas, api_key, output_file)
+        federate_datasets(domain_id, clas, api_key, output_file, format='json')
     else:
-        federate_datasets_csv(domain_id, clas, api_key, output_file)
+        federate_datasets(domain_id, clas, api_key, output_file, format='csv')
 
 
 def is_json_output(output_file):
     _, file_extension = os.path.splitext(output_file.name)
-    if file_extension == 'csv':
+    if file_extension == '.csv':
         return False
     return True
 
