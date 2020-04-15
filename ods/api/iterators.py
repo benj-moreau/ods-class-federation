@@ -75,7 +75,7 @@ class DatasetIterator:
             else:
                 self.result = records_v2(self.domain_id, self.dataset_id, self.where, self.search, self.refine,
                                          self.exclude, self.rows, self.start + (self.nb_query * self.rows),
-                                         self.sort, self.api_key)
+                                         self.sort, self.select, self.api_key)
                 self.nb_query += 1
                 if len(self.result['records']) > 0:
                     return self.__next__()
