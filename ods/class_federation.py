@@ -37,26 +37,29 @@ def get_rdf_mapping(semantic, domain_id, dataset_id, clas):
 
 
 def generate_json(domain_id, clas, api_key, json_file, dataset_schema):
+    federated_fields = _get_federation_fields(dataset_schema, clas)
     json_file.write('{\n  "records": [\n')
     try:
         # Now we retrieve data from datasets
+        first_record = True
         for dataset_id, templates in dataset_schema.items():
             # rows=100 to reduce http calls
             dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100, api_key=api_key)
             for i, record in enumerate(dataset_iterator, start=1):
                 out_record = {'from_datasetid': record.dataset_id, 'from_recordid': record.id}
+                row = dict.fromkeys(federated_fields)
                 if i % 50 == 0:
                     logging.info(f'Processed {i}/{len(dataset_iterator)} records in {dataset_id}.')
                 for template_fields, properties in templates.items():
-                    row = {clas: process_value(record, template_fields)}
+                    row[clas] = process_value(record, template_fields)
                     for federate_field, field_names in properties.items():
                         row[federate_field] = process_value(record, field_names)
                     out_record['fields'] = row
-                    if i == 1:
+                    if first_record:
                         json_file.write(f'    {json.dumps(out_record)}')
+                        first_record = False
                     else:
                         json_file.write(f',\n    {json.dumps(out_record)}')
-        json_file.write('\n  ]\n}')
     except:
         raise
     finally:
