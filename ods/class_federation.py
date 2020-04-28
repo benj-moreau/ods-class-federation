@@ -5,12 +5,13 @@ import json
 import os
 from rdflib import RDF
 
-from ods.api.iterators import CatalogIterator, DatasetIterator
+from ods.api.iterators import CatalogIterator, ExportDatasetIterator
 from ods.rdf.mapping import RDFMapping, get_fields, get_suffix
 
 
 def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
-    schema, semantic = _get_federated_dataset(domain_id, clas, api_key)
+    dataset_size = {}
+    schema, semantic = _get_federated_dataset(domain_id, clas, api_key, dataset_size)
     filename, _ = os.path.splitext(output_file.name)
     rdf_mapping = get_rdf_mapping(semantic, domain_id, filename, clas)
     output_mapping_file = open(f'{filename}.rml.yml', 'w')
@@ -18,9 +19,9 @@ def federate_datasets(domain_id, clas, api_key, output_file, format='json'):
     output_mapping_file.close()
     with output_file:
         if format == 'csv':
-            generate_csv(domain_id, clas, api_key, output_file, schema)
+            generate_csv(domain_id, clas, api_key, output_file, schema, dataset_size)
         else:
-            generate_json(domain_id, clas, api_key, output_file, schema)
+            generate_json(domain_id, clas, api_key, output_file, schema, dataset_size)
 
 
 def get_rdf_mapping(semantic, domain_id, dataset_id, clas):
@@ -36,7 +37,7 @@ def get_rdf_mapping(semantic, domain_id, dataset_id, clas):
     return rdf_mapping
 
 
-def generate_json(domain_id, clas, api_key, json_file, dataset_schema):
+def generate_json(domain_id, clas, api_key, json_file, dataset_schema, dataset_size):
     federated_fields = _get_federation_fields(dataset_schema, clas)
     json_file.write('{\n  "records": [\n')
     try:
@@ -44,12 +45,13 @@ def generate_json(domain_id, clas, api_key, json_file, dataset_schema):
         first_record = True
         for dataset_id, templates in dataset_schema.items():
             # rows=100 to reduce http calls
-            dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100, api_key=api_key)
+            dataset_iterator = ExportDatasetIterator(domain_id=domain_id, dataset_id=dataset_id, api_key=api_key)
+            records_number = dataset_size[dataset_id]
             for i, record in enumerate(dataset_iterator, start=1):
-                out_record = {'from_datasetid': record.dataset_id, 'from_recordid': record.id}
+                out_record = {'from_datasetid': record.dataset_id}
                 row = dict.fromkeys(federated_fields)
-                if i % 50 == 0:
-                    logging.info(f'Processed {i}/{len(dataset_iterator)} records in {dataset_id}.')
+                if i % 2000 == 0:
+                    logging.info(f'Processed {i}/{records_number} records in {dataset_id}.')
                 for template_fields, properties in templates.items():
                     row[clas] = process_value(record, template_fields)
                     for federate_field, field_names in properties.items():
@@ -66,17 +68,18 @@ def generate_json(domain_id, clas, api_key, json_file, dataset_schema):
         json_file.write('\n  ]\n}')
 
 
-def generate_csv(domain_id, clas, api_key, csv_file, dataset_schema):
+def generate_csv(domain_id, clas, api_key, csv_file, dataset_schema, dataset_size):
     federated_fields = _get_federation_fields(dataset_schema, clas)
     writer = csv.DictWriter(csv_file, fieldnames=federated_fields)
     writer.writeheader()
     # Now we retrieve data from datasets
     for dataset_id, templates in dataset_schema.items():
         # rows=100 to reduce http calls
-        dataset_iterator = DatasetIterator(domain_id=domain_id, dataset_id=dataset_id, rows=100, api_key=api_key)
+        dataset_iterator = ExportDatasetIterator(domain_id=domain_id, dataset_id=dataset_id, api_key=api_key)
+        records_number = dataset_size[dataset_id]
         for i, record in enumerate(dataset_iterator, start=1):
-            if i % 50 == 0:
-                logging.info(f'Processed {i}/{len(dataset_iterator)} records in {dataset_id}.')
+            if i % 5000 == 0:
+                logging.info(f'Processed {i}/{records_number} records in {dataset_id}.')
             for template_fields, properties in templates.items():
                 row = {clas: process_value(record, template_fields)}
                 for federate_field, field_names in properties.items():
@@ -84,7 +87,7 @@ def generate_csv(domain_id, clas, api_key, csv_file, dataset_schema):
                 writer.writerow(row)
 
 
-def _get_federated_dataset(domain_id, clas, api_key):
+def _get_federated_dataset(domain_id, clas, api_key, dataset_size):
     catalog_iterator = CatalogIterator(domain_id=domain_id, where=f'semantic.classes:"{clas}"', api_key=api_key)
     logging.info(f'Found {len(catalog_iterator)} datasets containing class {clas}.')
     dataset_schema = {}
@@ -113,6 +116,7 @@ def _get_federated_dataset(domain_id, clas, api_key):
                     if clas in cl:
                         classes.add(object)
             filtered_mapping[fields] = template_mapping
+        dataset_size[dataset.dataset_id] = dataset.records_count
         dataset_schema[dataset.dataset_id] = filtered_mapping
         dataset_semantic[str(RDF.type)] = list(classes)
         dataset_semantic['id'] = clas

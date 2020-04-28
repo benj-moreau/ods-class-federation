@@ -1,7 +1,7 @@
 import pprint
 
 from ods.api.catalog import search_v2
-from ods.api.dataset import records_v2
+from ods.api.dataset import records_v2, export_records_v2
 
 PrettyPrinter = pprint.PrettyPrinter(indent=4)
 
@@ -40,6 +40,32 @@ class CatalogIterator:
                 if len(self.result['datasets']) > 0:
                     return self.__next__()
         raise StopIteration()
+
+
+class ExportDatasetIterator:
+    def __init__(self, domain_id, dataset_id, where='', search='',  rows=-1, start=0, sort='',
+                 select='', api_key=None):
+        self.domain_id = domain_id
+        self.dataset_id = dataset_id
+        self.where = where
+        self.search = search
+        self.rows = rows
+        self.start = start
+        self.sort = sort
+        self.select = select
+        self.api_key = api_key
+        self.result = export_records_v2(domain_id, dataset_id, where, search, rows, start, sort, select, 'jsonl',
+                                        api_key)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            fields = next(self.result)
+            return DatasetRecord(self.domain_id, self.dataset_id, {'record': {'fields': fields}})
+        except StopIteration:
+            raise StopIteration()
 
 
 class DatasetIterator:
